@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Union
 
-from websocket import create_connection, WebSocket, WebSocketConnectionClosedException
+import websocket as wsock
 
 
 logger = logging.getLogger('centrifuge')
@@ -13,7 +13,8 @@ logger = logging.getLogger('centrifuge')
 class CentrifugeBase:
 
     def __init__(self, host, port, path='connection/websocket'):
-        self.ws: Union[WebSocket, None] = None
+        self.ws: Union[wsock.WebSocket, None] = None
+        self.url = f"ws://{host}:{port}/{path}"
 
         self.host = host
         self.port = port
@@ -23,9 +24,9 @@ class CentrifugeBase:
 
     def _conn(self):
         try:
-            self.ws = create_connection(f"ws://{self.host}:{self.port}/{self.path}")
+            self.ws = wsock.create_connection(self.url)
         except ConnectionRefusedError:
-            logger.error("Er.: Connection Refused! Maybe settings not correct!")
+            logger.error("Er.: Maybe settings not correct!")
             exit(42)
 
     def _send_cmd(self, id, method, params):
@@ -60,9 +61,9 @@ class Centrifuge(CentrifugeBase):
                 "token": token,
                 "data": data
             }
-            return self._send_cmd(id=1, method=0, params=params)
+            return self._send_cmd(1, 0, params)
 
-        except WebSocketConnectionClosedException:
+        except wsock.WebSocketConnectionClosedException:
             logger.error("Err.: Token or data invalid!")
             exit(42)
 
@@ -71,9 +72,9 @@ class Centrifuge(CentrifugeBase):
             params = {
                 "channel": channel,
             }
-            return self._send_cmd(id=2, method=1, params=params)
+            return self._send_cmd(2, 1, params)
 
-        except WebSocketConnectionClosedException:
+        except wsock.WebSocketConnectionClosedException:
             logger.error("Err.: Channel not found!")
             exit(42)
 
